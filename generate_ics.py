@@ -116,13 +116,26 @@ def build_ics(events: list, calendar_name: str) -> str:
     ]
 
     now_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    skipped = 0
 
     for evt in events:
-        dtstart = parse_iso_utc(evt["start"]).strftime("%Y%m%dT%H%M%SZ")
-        dtend = parse_iso_utc(evt["end"]).strftime("%Y%m%dT%H%M%SZ")
+        start_raw = evt.get("start")
+        if not start_raw:
+            # Pas de date de début exploitable : on ne peut rien construire.
+            skipped += 1
+            continue
+
+        end_raw = evt.get("end") or start_raw  # à défaut, événement ponctuel (durée nulle)
+        if "end" not in evt:
+            print(f"  [avertissement] pas de champ 'end' pour "
+                  f"\"{evt.get('title', '').strip()}\" ({start_raw}) -> "
+                  f"utilisation de start comme end.")
+
+        dtstart = parse_iso_utc(start_raw).strftime("%Y%m%dT%H%M%SZ")
+        dtend = parse_iso_utc(end_raw).strftime("%Y%m%dT%H%M%SZ")
         # UID stable : basé sur le contenu, pour éviter les doublons entre
         # deux régénérations successives du fichier.
-        uid_source = f"{evt['start']}-{evt['end']}-{evt.get('title','')}"
+        uid_source = f"{start_raw}-{end_raw}-{evt.get('title','')}"
         uid = uuid.uuid5(uuid.NAMESPACE_URL, uid_source)
 
         lines.append("BEGIN:VEVENT")
@@ -134,6 +147,8 @@ def build_ics(events: list, calendar_name: str) -> str:
         lines.append("END:VEVENT")
 
     lines.append("END:VCALENDAR")
+    if skipped:
+        print(f"  [avertissement] {skipped} événement(s) ignoré(s) faute de champ 'start'.")
     return "\r\n".join(lines) + "\r\n"
 
 
