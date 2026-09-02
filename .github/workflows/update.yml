@@ -1,0 +1,41 @@
+name: Update ICS calendar
+
+on:
+  schedule:
+    # Toutes les heures, à la minute 15 (évite la charge pile à l'heure)
+    - cron: '15 * * * *'
+  workflow_dispatch: {}   # permet de le lancer manuellement depuis l'onglet Actions
+
+permissions:
+  contents: write
+
+jobs:
+  update-ics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate ICS file
+        env:
+          # Ton groupe (G1, G2, ... G6, ou All). Modifie ici selon ton groupe.
+          TARGET_GROUP: G4
+          # Nom de fichier "secret" (token aléatoire) : garde-le identique
+          # à celui que tu mets dans l'URL Google Agenda.
+          OUTPUT_FILENAME: agenda-0e7fefe03c4d40a0.ics
+        run: |
+          mkdir -p docs
+          python3 generate_ics.py "$TARGET_GROUP" "docs/$OUTPUT_FILENAME"
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update ICS calendar"
+          git push
