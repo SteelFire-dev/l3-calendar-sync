@@ -2,8 +2,8 @@ name: Update ICS calendar
 
 on:
   schedule:
-    # Toutes les heures, à la minute 15 (évite la charge pile à l'heure)
-    - cron: '15 * * * *'
+    # Tous les jours, à 01:30 (évite la charge pile à l'heure)
+    - cron: '30 1 * * *'
   workflow_dispatch: {}   # permet de le lancer manuellement depuis l'onglet Actions
 
 permissions:
